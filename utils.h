@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 int array_min_index(int arr[], int len) {
