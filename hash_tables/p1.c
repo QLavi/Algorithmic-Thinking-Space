@@ -1,3 +1,13 @@
+/*
+	Idea:
+		We use a special hash function that collects all the identical snowflakes
+		into a single bucket (it may also contain non-identical ones, but not many)
+		and then brute-force search in the linked list contained in that bucket.
+		So in other words, we reduce look up time by avoiding comparing all pairs,
+		and only comparing similar snowflakes.
+
+
+*/
 #include "../utils.h"
 
 #define SLEN 6
