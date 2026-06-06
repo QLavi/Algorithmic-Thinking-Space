@@ -1,13 +1,37 @@
+/*
+Idea:
+    We break the word into two parts as shown in the following example
+    c reate
+    cr eate
+    cre ate
+    crea te
+    creat e
+
+    These two parts are then checked if they are present in the hash table containing
+    all the words.
+*/
+
 #include "../utils.h"
 
 typedef struct string {
     char *data;
+    size_t hash;
     size_t len;
 } string;
 
 #define MAX_CHARS 1024
 char string_pool[MAX_CHARS];
 size_t used = 0;
+
+size_t string_hash(char *s, size_t len) {
+    size_t hash = 2166136261u;
+    for (size_t i=0; i<len; i++) {
+        hash ^= (size_t)s[i];
+        hash *= 16777619;
+    }
+
+    return hash;
+}
 
 string string_create(char *data, size_t len, bool do_alloc) {
     string s;
@@ -25,7 +49,7 @@ string string_create(char *data, size_t len, bool do_alloc) {
     } else {
         s.data = data;
     }
-
+    s.hash = string_hash(s.data, len);
     s.len = len;
 
     if (do_alloc) {
@@ -85,47 +109,71 @@ void string_print(string s) {
     putchar('\n');
 }
 
-#define MAX_STRS 128
-static string compounds[MAX_STRS];
-size_t count = 0;
 
-void solution(string strs[], size_t N) {
-    for (size_t curr = 0; curr < N; curr++) {
-        
-        for (size_t s1 = 0; s1 < N; s1++) {
-            if (s1 == curr) continue;
+typedef struct Word_Node {
+    string s;
+    struct Word_Node *next;
+} Word_Node;
 
-            for (size_t s2 = s1+1; s2 < N; s2++) {
-                if (s2 == curr) continue;
+#define MAX_ENTRIES 1024
+static Word_Node *hash_table[MAX_ENTRIES] = {NULL};
 
-                string a = string_concat(strs[s1], strs[s2]);
-                string b = string_concat(strs[s2], strs[s1]);
-                
-                if (
-                    string_issubstr(strs[curr], a) ||
-                    string_issubstr(strs[curr], b)) {
-                        compounds[count++] = strs[curr];
-                    }
 
-            }
+bool hashtable_in(string s) {
+    size_t idx = s.hash % MAX_ENTRIES;
+    for(Word_Node *p=hash_table[idx]; p != NULL; p = p->next) {
+        if (string_isequal(s, p->s, s.len)) {
+            return true;
         }
     }
 
-    for (size_t i=0; i<count; i++) {
-        string_print(compounds[i]);
+    return false;
+}
+
+void solution() {
+    string a, b;
+    for (size_t i=0; i<MAX_ENTRIES; i++) {
+        Word_Node *p = hash_table[i];
+        if (p == NULL) continue;
+
+        for (size_t j=1; j<=p->s.len; j++) {
+            size_t lhs_len = j;
+            size_t rhs_len = p->s.len - j;
+
+            a.data = p->s.data;
+            a.len = lhs_len;
+            a.hash = string_hash(a.data, a.len);
+            // string_print(a);
+
+            b.data = lhs_len + p->s.data;
+            b.len = rhs_len;
+            b.hash = string_hash(b.data, b.len);
+            // string_print(b);
+
+            if (hashtable_in(a) && hashtable_in(b)) {
+                string_print(p->s);
+            }
+           
+        }
     }
 }
 
-#define MAX_INPUT_STRS 128
-static string input_strings[MAX_INPUT_STRS];
 int main() {
-    char curr_str[64];
     size_t N;
     scanf("%ld", &N);
+
+    char curr_str[MAX_CHARS];
+
     for (size_t i=0; i<N; i++) {
         scanf("%s", curr_str);
-        input_strings[i] = string_create(curr_str, strlen(curr_str), true);
+        size_t len = strlen(curr_str);
+        string s = string_create(curr_str, len, true);
+
+        Word_Node *n = malloc(sizeof(Word_Node));
+        n->s = s;
+        n->next = hash_table[s.hash % MAX_ENTRIES];
+        hash_table[s.hash % MAX_ENTRIES] = n;
     }
-    solution(input_strings, N);
+    solution();
     return 0;
 }
